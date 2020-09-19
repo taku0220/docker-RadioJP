@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ezstream>
+  <servers>
+    <server>
+      <name>Radio</name>
+      <protocol>HTTP</protocol>
+      <hostname>127.0.0.1</hostname>
+      <port>58000</port>
+      <password>icecast2</password>
+      <public>No</public>
+    </server>
+  </servers>
+
+  <streams>
+    <stream>
+      <mountpoint>/radio</mountpoint>
+      <server>Radio</server>
+      <public>No</public>
+      <format>MP3</format>
+      <intake>Radio</intake>
+      <stream_name>bayfm78</stream_name>
+      <stream_genre>Radio</stream_genre>
+    </stream>
+  </streams>
+
+  <intakes>
+    <intake>
+      <name>Radio</name>
+      <type>stdin</type>
+    </intake>
+  </intakes>
+
+  <metadata>
+    <!-- Program to query for metadata instead of from media files -->
+    <program>/ezstream/meta.sh</program>
+
+    <!-- Metadata format -->
+    <format_str>@a@ - @t@</format_str>
+
+    <!-- Interval for additional metadata refreshes (default: -1 (none)) ,>0: sec -->
+    <refresh_interval>-1</refresh_interval>
+
+    <!-- Setting to clean up extraneous whitespace (default: no) -->
+    <normalize_strings>No</normalize_strings>
+
+    <!-- Setting to suppress all metadata udpates (default: no) -->
+    <no_updates>No</no_updates>
+  </metadata>
+</ezstream>

@@ -1,0 +1,4 @@
+#!/usr/bin/with-contenv bash
+
+exec \
+    /usr/bin/icecast -c /etc/icecast.xml

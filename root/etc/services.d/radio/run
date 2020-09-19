@@ -1,0 +1,7 @@
+#!/usr/bin/with-contenv bash
+
+sleep 3s
+
+echo "Start service: radio"
+exec \
+	s6-setuidgid abc /radio/app/radio.py

@@ -1,0 +1,48 @@
+#!/usr/bin/with-contenv bash
+
+# make folders
+mkdir -p \
+	/config/artwork_option \
+	/config/log/icecast \
+	/icecast-pidfolder \
+	/radio/app/setting
+
+# copy icecast config file,if missing
+if [ ! -e "/etc/icecast.xml" ]; then
+  cp /radio/original_conf/icecast.xml /etc/icecast.xml
+fi
+
+# copy logging config file,if missing
+[[ ! -f /config/logging_config.conf ]] && \
+	cp /radio/original_conf/logging_config.conf /config/logging_config.conf
+[[ ! -L /radio/app/setting/logging_config.py && -f /radio/app/setting/logging_config.py ]] && \
+	rm /radio/app/setting/logging_config.py
+[[ ! -L /radio/app/setting/logging_config.py ]] && \
+	ln -s /config/logging_config.conf /radio/app/setting/logging_config.py
+
+# copy general config file,if missing
+if [ ! -f /config/general_config.conf ]; then 
+  cp /radio/original_conf/general_config.conf /config/general_config.conf
+  s6-svscanctl -t /var/run/s6/services  #container shutdown.
+  exit 1
+fi
+[[ ! -L /radio/app/setting/general_config.py && -f /radio/app/setting/general_config.py ]] && \
+	rm /radio/app/setting/general_config.py
+[[ ! -L /radio/app/setting/general_config.py ]] && \
+	ln -s /config/general_config.conf /radio/app/setting/general_config.py
+
+# ezstream config xml file permissions
+chmod -R 760 /ezstream
+
+# icecast configure set of conf
+python3 /radio/app/radio_config.py
+if [[ $? != 0 ]]; then
+  s6-svscanctl -t /var/run/s6/services  #container shutdown.
+fi
+
+# permissions
+chown -R abc:abc \
+	/config \
+	/ezstream \
+	/icecast-pidfolder \
+	/radio

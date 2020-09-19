@@ -1,0 +1,189 @@
+--- ezstream/doc/ezstream.1.in.in
++++ ezstream/doc/ezstream.1.in.in
+
+/*" Copyright (c) 2007 - 2020            Moritz Grimm <mgrimm@mrsserver.net>
+ *"
+ *" This program is free software; you can redistribute it and/or modify
+ *" it under the terms of the GNU General Public License version 2 as
+ *" published by the Free Software Foundation.
+ *"
+ *" This program is distributed in the hope that it will be useful,
+ *" but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *" GNU General Public License for more details.
+ */
+
+@@ -347,6 +347,8 @@
+ WebM media format
+ .It Ar Matroska
+ Matroska media format
++.It Ar AAC
++AAC media format
+ .El
+ .It Sy \&<encoder\ /\&>
+ Use the encoder configuration with the provided symbolic name
+
+--- ezstream/src/cfg_stream.c
++++ ezstream/src/cfg_stream.c
+
+/*
+ * Copyright (c) 2017, 2020 Moritz Grimm <mgrimm@mrsserver.net>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+@@ -177,6 +177,8 @@
+ 		*fmt_p = CFG_STREAM_WEBM;
+ 	} else if (0 == strcasecmp(str, CFG_SFMT_MATROSKA)) {
+ 		*fmt_p = CFG_STREAM_MATROSKA;
++	} else if (0 == strcasecmp(str, CFG_SFMT_AAC)) {
++		*fmt_p = CFG_STREAM_AAC;
+ 	} else
+ 		return (-1);
+ 	return (0);
+@@ -194,6 +196,8 @@
+ 		return (CFG_SFMT_WEBM);
+ 	case CFG_STREAM_MATROSKA:
+ 		return (CFG_SFMT_MATROSKA);
++	case CFG_STREAM_AAC:
++		return (CFG_SFMT_AAC);
+ 	default:
+ 		return (NULL);
+ 	}
+
+--- ezstream/src/cfg_stream.h
++++ ezstream/src/cfg_stream.h
+
+/*
+ * Copyright (c) 2017, 2020 Moritz Grimm <mgrimm@mrsserver.net>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+@@ -21,6 +21,7 @@
+ #define CFG_SFMT_MP3		"MP3"
+ #define CFG_SFMT_WEBM		"WebM"
+ #define CFG_SFMT_MATROSKA	"Matroska"
++#define CFG_SFMT_AAC		"AAC"
+ 
+ enum cfg_stream_format {
+ 	CFG_STREAM_INVALID = 0,
+@@ -28,8 +29,9 @@
+ 	CFG_STREAM_MP3,
+ 	CFG_STREAM_WEBM,
+ 	CFG_STREAM_MATROSKA,
++	CFG_STREAM_AAC,
+ 	CFG_STREAM_MIN = CFG_STREAM_OGG,
+-	CFG_STREAM_MAX = CFG_STREAM_MATROSKA,
++	CFG_STREAM_MAX = CFG_STREAM_AAC,
+ };
+ 
+ typedef struct cfg_stream *		cfg_stream_t;
+
+--- ezstream/src/stream.c
++++ ezstream/src/stream.c
+
+/*
+ * Copyright (c) 2015, 2020 Moritz Grimm <mgrimm@mrsserver.net>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+@@ -241,6 +241,15 @@
+ 			return (-1);
+ 		}
+ 		break;
++	case CFG_STREAM_AAC:
++		if (SHOUTERR_SUCCESS !=
++		    shout_set_format(s->shout, SHOUT_FORMAT_AAC)) {
++			log_error("stream: %s: format: %s: %s",
++			    s->name, cfg_stream_get_format_str(cfg_stream),
++			    shout_get_error(s->shout));
++			return (-1);
++		}
++		break;
+ #ifdef SHOUT_FORMAT_MATROSKA
+ 	case CFG_STREAM_MATROSKA:
+ 		if (SHOUTERR_SUCCESS !=
+
+--- ezstream/tests/check_cfg_encoder.c
++++ ezstream/tests/check_cfg_encoder.c
+
+/*
+ * Copyright (c) 2015, 2020 Moritz Grimm <mgrimm@mrsserver.net>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+@@ -84,7 +84,9 @@
+ 	    CFG_SFMT_MP3, NULL), 0);
+ 	ck_assert_int_eq(cfg_encoder_set_format_str(enc, encoders,
+ 	    CFG_SFMT_MATROSKA, NULL), 0);
+-	ck_assert_uint_eq(cfg_encoder_get_format(enc), CFG_STREAM_MATROSKA);
++        ck_assert_uint_eq(cfg_encoder_get_format(enc), CFG_STREAM_MATROSKA);
++	ck_assert_int_eq(cfg_encoder_set_format_str(enc, encoders,
++	    CFG_SFMT_AAC, NULL), 0);
+ }
+ END_TEST
+ 
+
+--- ezstream/tests/check_cfg_stream.c
++++ ezstream/tests/check_cfg_stream.c
+@@ -55,6 +55,8 @@
+ 	ck_assert_int_eq(fmt, CFG_STREAM_WEBM);
+ 	ck_assert_int_eq(cfg_stream_str2fmt(CFG_SFMT_MATROSKA, &fmt), 0);
+ 	ck_assert_int_eq(fmt, CFG_STREAM_MATROSKA);
++	ck_assert_int_eq(cfg_stream_str2fmt(CFG_SFMT_AAC, &fmt), 0);
++	ck_assert_int_eq(fmt, CFG_STREAM_AAC);
+ 	ck_assert_int_eq(cfg_stream_str2fmt("<something else>", &fmt), -1);
+ }
+ END_TEST
+@@ -69,6 +71,8 @@
+ 	    CFG_SFMT_WEBM);
+ 	ck_assert_str_eq(cfg_stream_fmt2str(CFG_STREAM_MATROSKA),
+ 	    CFG_SFMT_MATROSKA);
++	ck_assert_str_eq(cfg_stream_fmt2str(CFG_STREAM_AAC),
++	    CFG_SFMT_AAC);
+ 	ck_assert_ptr_eq(cfg_stream_fmt2str(CFG_STREAM_INVALID), NULL);
+ }
+ END_TEST

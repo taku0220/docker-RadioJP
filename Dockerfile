@@ -1,0 +1,106 @@
+FROM lsiobase/alpine:3.12 as buildstage
+############## build stage ##############
+
+COPY patch/ /tmp/source/
+RUN \
+ echo "**** install build packages ****" && \
+ apk add --no-cache \
+	autoconf \
+	automake \
+	build-base \
+	bsd-compat-headers \
+	check-dev \
+	curl \
+	gettext-dev \
+	gnu-libiconv \
+	libtheora-dev \
+	libtool \
+	libvorbis-dev \
+	libxml2-dev \
+	openssl-dev \
+	taglib-dev \
+	tar \
+	speex-dev && \
+\
+ mkdir -p \
+	/tmp/source/libshout \
+	/tmp/source/ezstream && \
+\
+ echo -e "\n**** compile and install libshout ****" && \
+ curl \
+	-o /tmp/source/libshout.tar.gz \
+	-L "https://gitlab.xiph.org/xiph/icecast-libshout/-/archive/v2.4.3/icecast-libshout-v2.4.3.tar.gz" \
+	-o /tmp/source/icecast-m4.tar.gz \
+	-L "https://gitlab.xiph.org/xiph/icecast-m4/-/archive/57027c6cc3f8b26d59e9560b4ac72a1a06d643b9/icecast-m4-57027c6cc3f8b26d59e9560b4ac72a1a06d643b9.tar.gz" \
+	-o /tmp/source/icecast-common.tar.gz \
+	-L "https://gitlab.xiph.org/xiph/icecast-common/-/archive/5de3e8b3b063002d8a9f52122e97f721e1742531/icecast-common-5de3e8b3b063002d8a9f52122e97f721e1742531.tar.gz" && \
+ tar xf /tmp/source/libshout.tar.gz -C \
+	/tmp/source/libshout --strip-components=1 && \
+ tar xf /tmp/source/icecast-m4.tar.gz -C \
+	/tmp/source/libshout/m4 --strip-components=1 && \
+ tar xf /tmp/source/icecast-common.tar.gz -C \
+	/tmp/source/libshout/src/common --strip-components=1 && \
+ cd /tmp/source/libshout && \
+ patch -p1 < /tmp/source/libshout/libshout_AAC.patch && \
+ autoreconf -i -v && \
+ ./configure \
+	--build=$CBUILD \
+	--host=$CHOST \
+	--prefix=/usr \
+	--sysconfdir=/etc \
+	--localstatedir=/var \
+	--with-openssl && \
+ make LDFLAGS+=-lspeex && \
+ make DESTDIR=/tmp/libshout-build install && \
+ cp -arv /tmp/libshout-build/usr / && \
+\
+ echo -e "\n**** compile and install ezstream ****" && \
+ curl \
+	-o /tmp/source/ezstream.tar.gz \
+	-L "https://gitlab.xiph.org/xiph/ezstream/-/archive/develop/ezstream-develop.tar.gz" && \
+ tar xf /tmp/source/ezstream.tar.gz -C \
+	/tmp/source/ezstream --strip-components=1 && \
+ cd /tmp/source/ezstream && \
+ patch -p1 < /tmp/source/ezstream/ezstream_AAC.patch && \
+ autoreconf -i -v && \
+ ./configure \
+	--build=$CBUILD \
+	--host=$CHOST \
+	--prefix=/usr && \
+ make && \
+ make check && \
+ make DESTDIR=/tmp/ezstream-build install
+############## runtime stage ##############
+FROM lsiobase/alpine:3.12
+
+RUN \
+ echo -e "\n\n**** install runtime packages ****" && \
+ apk add --no-cache \
+	curl \
+	ffmpeg \
+	icecast \
+	mailcap \
+	py3-lxml \
+	py3-pillow \
+	py3-pip \
+	python3 \
+	speex \
+	taglib && \
+\
+ echo -e "\n**** install pip packages ****" && \
+ pip3 install --upgrade pip && \
+ pip3 install --upgrade setuptools && \
+ pip3 install \
+	apscheduler \
+	Flask && \
+\
+ echo -e "\n**** backup icecast config file ****" && \
+ mv /etc/icecast.xml /etc/icecast.xml_orig && \
+\
+ echo -e "\n**** copy buildstage and local files ****"
+COPY --from=buildstage /tmp/libshout-build/ /
+COPY --from=buildstage /tmp/ezstream-build/ /
+COPY root/ /
+
+# ports and volumes
+VOLUME /config

@@ -1,0 +1,76 @@
+/*
+ * forked-daapd_test_icecast-utf8-metadata.patch
+ * Version 27.1.2 Beta4
+ * 2020/08/20
+ *
+ * for forked-daapd release version 27.1
+ */
+
+
+--- forked-daapd_271/src/http.c
++++ forked-daapd_temp/src/http.c
+
+/*
+ * Copyright (C) 2016 Espen Jürgensen <espenjurgensen@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+@@ -627,6 +627,8 @@
+     return -1;
+ 
+   icy_token = strtok_r((char *)buffer, ";", &save_pr);
++  if (icy_token)
++    DPRINTF(E_DBG, L_HTTP, "***::icy_token: %s\n",icy_token);
+   while (icy_token != NULL)
+     {
+       ptr = strchr(icy_token, '=');
+@@ -673,6 +675,10 @@
+     }
+   av_free(buffer);
+ 
++  DPRINTF(E_DBG, L_HTTP, "***::Found ICY_p: N %s, D %s, G %s, T %s, A %s, U %s\n",
++	metadata->name,metadata->description,metadata->genre,
++	metadata->title,metadata->artist,metadata->artwork_url);
++
+   if (metadata->title)
+     metadata->hash = djb_hash(metadata->title, strlen(metadata->title));
+ 
+@@ -695,7 +701,7 @@
+   /* Headers are ascii or iso-8859-1 according to:
+    * http://www.w3.org/Protocols/rfc2616/rfc2616-sec2.html#sec2.2
+    */
+-  utf = u8_strconv_from_encoding((char *)buffer, "ISO−8859−1", iconveh_question_mark);
++  utf = u8_strconv_from_encoding((char *)buffer, "UTF-8", iconveh_question_mark);
+   av_free(buffer);
+   if (!utf)
+     return -1;
+@@ -720,10 +726,16 @@
+ 	metadata->description = strdup(ptr);
+       else if ((strncmp(icy_token, "icy-genre", strlen("icy-genre")) == 0) && !metadata->genre)
+ 	metadata->genre = strdup(ptr);
++      else if ((strncmp(icy_token, "icy-url", strlen("icy-url")) == 0) && !metadata->artwork_url && strlen(ptr) > 0)
++	metadata->artwork_url = strdup(ptr);
+ 
+       icy_token = strtok_r(NULL, "\r\n", &save_pr);
+     }
+   free(utf);
++
++  DPRINTF(E_DBG, L_HTTP, "***::Found ICY_h: N %s, D %s, G %s, T %s, A %s, U %s\n",
++	metadata->name,metadata->description,metadata->genre,
++	metadata->title,metadata->artist,metadata->artwork_url);
+ 
+   return 0;
+ }
