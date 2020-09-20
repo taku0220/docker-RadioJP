@@ -33,7 +33,7 @@ curl -o docker-RadioJP.tar.gz \
 ```
 **2.展開先のフォルダを作成。**  
 ```bash
-mkdir daapd-RadioJP
+mkdir docker-RadioJP
 ```
 **3.build用データを展開する。**  
 `docker-RadioJP`フォルダにファイルが展開されます。  
@@ -72,7 +72,7 @@ uid=501(dockuser) gid=100(everyone)
 **2.config用のフォルダ作成**  
 configフォルダはdocker外から操作出来る所に作成してください。
 ```bash
-cd /path/to/config
+mkdir /path/to/config
 ```
 **3.コンテナの作成**  
 ```bash
