@@ -34,6 +34,9 @@ fi
 # ezstream config xml file permissions
 chmod -R 760 /ezstream
 
+# radio python file permissions
+chmod -R u+x /radio/app
+
 # icecast configure set of conf
 python3 /radio/app/radio_config.py
 if [[ $? != 0 ]]; then
